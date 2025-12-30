@@ -1,4 +1,5 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import { Transition } from '@headlessui/react';
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -13,7 +14,8 @@ export default function Index({ products, cartItems }) {
     const [cartQuantities, setCartQuantities] = useState(() =>
         Object.fromEntries(cartItems.map((item) => [item.id, item.quantity])),
     );
-    const [isLoading, setIsLoading] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showNotification, setShowNotification] = useState(false);
     const notification = flash?.notification;
 
     useEffect(() => {
@@ -31,17 +33,17 @@ export default function Index({ products, cartItems }) {
     }, [cartItems]);
 
     useEffect(() => {
-        const startLoading = () => setIsLoading(true);
-        const stopLoading = () => setIsLoading(false);
+        if (!notification?.message) {
+            return;
+        }
 
-        router.on('start', startLoading);
-        router.on('finish', stopLoading);
+        setShowNotification(true);
+        const timeout = setTimeout(() => {
+            setShowNotification(false);
+        }, 4000);
 
-        return () => {
-            router.off('start', startLoading);
-            router.off('finish', stopLoading);
-        };
-    }, []);
+        return () => clearTimeout(timeout);
+    }, [notification?.message, notification?.type]);
 
     const subtotal = useMemo(() => {
         return cartItems.reduce((total, item) => {
@@ -57,7 +59,13 @@ export default function Index({ products, cartItems }) {
                 product_id: productId,
                 quantity: productQuantities[productId] ?? 1,
             },
-            { preserveScroll: true },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                only: ['cartItems', 'flash', 'errors'],
+                onStart: () => setIsSubmitting(true),
+                onFinish: () => setIsSubmitting(false),
+            },
         );
     };
 
@@ -67,13 +75,23 @@ export default function Index({ products, cartItems }) {
             {
                 quantity: cartQuantities[cartItemId],
             },
-            { preserveScroll: true },
+            {
+                preserveScroll: true,
+                preserveState: true,
+                only: ['cartItems', 'flash', 'errors'],
+                onStart: () => setIsSubmitting(true),
+                onFinish: () => setIsSubmitting(false),
+            },
         );
     };
 
     const handleRemoveCart = (cartItemId) => {
         router.delete(route('cart.destroy', cartItemId), {
             preserveScroll: true,
+            preserveState: true,
+            only: ['cartItems', 'flash', 'errors'],
+            onStart: () => setIsSubmitting(true),
+            onFinish: () => setIsSubmitting(false),
         });
     };
 
@@ -91,6 +109,50 @@ export default function Index({ products, cartItems }) {
             }
         >
             <Head title="Shop" />
+            <Transition
+                show={showNotification && Boolean(notification)}
+                enter="transition ease-out duration-200"
+                enterFrom="opacity-0 -translate-y-2"
+                enterTo="opacity-100 translate-y-0"
+                leave="transition ease-in duration-150"
+                leaveFrom="opacity-100 translate-y-0"
+                leaveTo="opacity-0 -translate-y-2"
+            >
+                <div className="fixed left-1/2 top-6 z-50 w-[min(90vw,28rem)] -translate-x-1/2">
+                    <div
+                        className={`flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm shadow-lg ${
+                            notification?.type === 'success'
+                                ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                                : notification?.type === 'info'
+                                  ? 'border-blue-200 bg-blue-50 text-blue-800'
+                                  : 'border-gray-200 bg-white text-gray-700'
+                        }`}
+                    >
+                        <span className="text-lg">
+                            {notification?.type === 'success'
+                                ? '✅'
+                                : notification?.type === 'info'
+                                  ? 'ℹ️'
+                                  : '💬'}
+                        </span>
+                        <div>
+                            <p className="text-xs font-semibold uppercase tracking-wide">
+                                Notification
+                            </p>
+                            <p className="mt-1 text-sm font-medium">
+                                {notification?.message}
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setShowNotification(false)}
+                            className="ml-auto text-xs font-semibold text-gray-400 transition hover:text-gray-600"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </Transition>
 
             <div className="py-12">
                 <div className="mx-auto grid max-w-7xl gap-6 px-4 sm:px-6 lg:grid-cols-[2fr_1fr] lg:px-8">
@@ -112,61 +174,56 @@ export default function Index({ products, cartItems }) {
                                 Add product
                             </Link>
                         </div>
-                        <div className="relative">
-                            {isLoading && (
-                                <div className="absolute inset-0 z-10 flex items-center justify-center rounded-3xl bg-white/70 backdrop-blur">
-                                    <div className="flex items-center gap-3 rounded-full border border-indigo-100 bg-white px-4 py-2 text-sm font-semibold text-indigo-600 shadow-lg">
-                                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" />
-                                        Loading updates...
+                        <div className="space-y-4">
+                            {productsData.map((product) => (
+                                <div
+                                    key={product.id}
+                                    className="flex flex-col justify-between gap-4 rounded-lg bg-white p-6 shadow-sm sm:flex-row sm:items-center"
+                                >
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-gray-900">
+                                            {product.name}
+                                        </h3>
+                                        <p className="text-sm text-gray-500">
+                                            ${Number(product.price).toFixed(2)} ·{' '}
+                                            {product.stock_quantity} in stock
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            max={product.stock_quantity}
+                                            value={
+                                                productQuantities[product.id] ??
+                                                1
+                                            }
+                                            onChange={(event) =>
+                                                setProductQuantities((prev) => ({
+                                                    ...prev,
+                                                    [product.id]:
+                                                        Number(
+                                                            event.target.value,
+                                                        ) || 1,
+                                                }))
+                                            }
+                                            className="w-20 rounded-md border-gray-300 text-sm"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() =>
+                                                handleAddToCart(product.id)
+                                            }
+                                            disabled={isSubmitting}
+                                            className="inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-indigo-300"
+                                        >
+                                            {isSubmitting
+                                                ? 'Updating...'
+                                                : 'Add to cart'}
+                                        </button>
                                     </div>
                                 </div>
-                            )}
-                            <div className="space-y-4">
-                                {productsData.map((product) => (
-                                    <div
-                                        key={product.id}
-                                        className="flex flex-col justify-between gap-4 rounded-lg bg-white p-6 shadow-sm sm:flex-row sm:items-center"
-                                    >
-                                <div>
-                                    <h3 className="text-lg font-semibold text-gray-900">
-                                        {product.name}
-                                    </h3>
-                                    <p className="text-sm text-gray-500">
-                                        ${Number(product.price).toFixed(2)} ·{' '}
-                                        {product.stock_quantity} in stock
-                                    </p>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        max={product.stock_quantity}
-                                        value={
-                                            productQuantities[product.id] ?? 1
-                                        }
-                                        onChange={(event) =>
-                                            setProductQuantities((prev) => ({
-                                                ...prev,
-                                                [product.id]:
-                                                    Number(event.target.value) ||
-                                                    1,
-                                            }))
-                                        }
-                                        className="w-20 rounded-md border-gray-300 text-sm"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            handleAddToCart(product.id)
-                                        }
-                                        className="inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
-                                    >
-                                        Add to cart
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                            </div>
+                            ))}
                         </div>
                         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3 text-sm text-gray-500 shadow-sm">
                             <span>
@@ -212,33 +269,6 @@ export default function Index({ products, cartItems }) {
                     </section>
 
                     <aside className="rounded-3xl border border-gray-100 bg-white/90 p-6 shadow-lg shadow-indigo-100/50 ring-1 ring-gray-100 backdrop-blur lg:sticky lg:top-8">
-                        {notification && (
-                            <div
-                                className={`mb-4 flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm shadow-sm ${
-                                    notification.type === 'success'
-                                        ? 'border-emerald-100 bg-emerald-50 text-emerald-700'
-                                        : notification.type === 'info'
-                                          ? 'border-blue-100 bg-blue-50 text-blue-700'
-                                          : 'border-gray-100 bg-gray-50 text-gray-700'
-                                }`}
-                            >
-                                <span className="text-lg">
-                                    {notification.type === 'success'
-                                        ? '✅'
-                                        : notification.type === 'info'
-                                          ? 'ℹ️'
-                                          : '💬'}
-                                </span>
-                                <div>
-                                    <p className="text-xs font-semibold uppercase tracking-wide">
-                                        Notification
-                                    </p>
-                                    <p className="mt-1 text-sm font-medium">
-                                        {notification.message}
-                                    </p>
-                                </div>
-                            </div>
-                        )}
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-500">
@@ -307,7 +337,8 @@ export default function Index({ products, cartItems }) {
                                                 onClick={() =>
                                                     handleRemoveCart(item.id)
                                                 }
-                                                className="rounded-full border border-red-100 bg-red-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-red-600 transition hover:border-red-200 hover:bg-red-100"
+                                                disabled={isSubmitting}
+                                                className="rounded-full border border-red-100 bg-red-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-red-600 transition hover:border-red-200 hover:bg-red-100 disabled:cursor-not-allowed disabled:border-red-50 disabled:bg-red-50/60 disabled:text-red-300"
                                             >
                                                 Remove
                                             </button>
@@ -350,9 +381,12 @@ export default function Index({ products, cartItems }) {
                                                 onClick={() =>
                                                     handleUpdateCart(item.id)
                                                 }
+                                                disabled={isSubmitting}
                                                 className="inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
                                             >
-                                                Update
+                                                {isSubmitting
+                                                    ? 'Updating...'
+                                                    : 'Update'}
                                             </button>
                                             <span className="ml-auto text-sm font-semibold text-gray-900">
                                                 $
