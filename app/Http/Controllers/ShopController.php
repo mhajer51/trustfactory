@@ -12,7 +12,8 @@ class ShopController extends Controller
     {
         $products = Product::query()
             ->orderBy('name')
-            ->get(['id', 'name', 'price', 'stock_quantity']);
+            ->paginate(9, ['id', 'name', 'price', 'stock_quantity'])
+            ->withQueryString();
 
         $cartItems = $request->user()
             ->cartItems()
