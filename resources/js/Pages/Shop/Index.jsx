@@ -95,6 +95,20 @@ export default function Index({ products, cartItems }) {
         });
     };
 
+    const handleCheckout = () => {
+        router.post(
+            route('checkout.store'),
+            {},
+            {
+                preserveScroll: true,
+                preserveState: true,
+                only: ['cartItems', 'flash', 'errors'],
+                onStart: () => setIsSubmitting(true),
+                onFinish: () => setIsSubmitting(false),
+            },
+        );
+    };
+
     return (
         <AuthenticatedLayout
             header={
@@ -416,6 +430,8 @@ export default function Index({ products, cartItems }) {
                                     </div>
                                     <button
                                         type="button"
+                                        onClick={handleCheckout}
+                                        disabled={isSubmitting}
                                         className="mt-4 w-full rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-200 transition hover:-translate-y-0.5 hover:bg-indigo-500"
                                     >
                                         Proceed to checkout
