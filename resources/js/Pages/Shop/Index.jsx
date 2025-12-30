@@ -4,8 +4,11 @@ import { useEffect, useMemo, useState } from 'react';
 
 export default function Index({ products, cartItems }) {
     const { errors, flash } = usePage().props;
+    const productsData = products?.data ?? products ?? [];
+    const productsMeta = products?.meta ?? {};
+    const productsLinks = products?.links ?? [];
     const [productQuantities, setProductQuantities] = useState(() =>
-        Object.fromEntries(products.data.map((product) => [product.id, 1])),
+        Object.fromEntries(productsData.map((product) => [product.id, 1])),
     );
     const [cartQuantities, setCartQuantities] = useState(() =>
         Object.fromEntries(cartItems.map((item) => [item.id, item.quantity])),
@@ -15,9 +18,9 @@ export default function Index({ products, cartItems }) {
 
     useEffect(() => {
         setProductQuantities(
-            Object.fromEntries(products.data.map((product) => [product.id, 1])),
+            Object.fromEntries(productsData.map((product) => [product.id, 1])),
         );
-    }, [products.data]);
+    }, [productsData]);
 
     useEffect(() => {
         setCartQuantities(
@@ -119,7 +122,7 @@ export default function Index({ products, cartItems }) {
                                 </div>
                             )}
                             <div className="space-y-4">
-                                {products.data.map((product) => (
+                                {productsData.map((product) => (
                                     <div
                                         key={product.id}
                                         className="flex flex-col justify-between gap-4 rounded-lg bg-white p-6 shadow-sm sm:flex-row sm:items-center"
@@ -167,12 +170,13 @@ export default function Index({ products, cartItems }) {
                         </div>
                         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3 text-sm text-gray-500 shadow-sm">
                             <span>
-                                Showing {products.meta.from ?? 0}-
-                                {products.meta.to ?? 0} of {products.meta.total}{' '}
+                                Showing {productsMeta.from ?? 0}-
+                                {productsMeta.to ?? 0} of{' '}
+                                {productsMeta.total ?? productsData.length}{' '}
                                 products
                             </span>
                             <div className="flex flex-wrap items-center gap-2">
-                                {products.links.map((link) => {
+                                {productsLinks.map((link) => {
                                     const label = link.label
                                         .replace('&laquo;', '←')
                                         .replace('&raquo;', '→');
