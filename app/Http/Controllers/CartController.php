@@ -35,7 +35,10 @@ class CartController extends Controller
         $cartItem->quantity = $newQuantity;
         $cartItem->save();
 
-        return back();
+        return back()->with('notification', [
+            'type' => 'success',
+            'message' => 'Product added to your cart.',
+        ]);
     }
 
     public function update(Request $request, CartItem $cartItem): RedirectResponse
@@ -57,7 +60,10 @@ class CartController extends Controller
         $cartItem->quantity = $validated['quantity'];
         $cartItem->save();
 
-        return back();
+        return back()->with('notification', [
+            'type' => 'success',
+            'message' => 'Cart updated successfully.',
+        ]);
     }
 
     public function destroy(Request $request, CartItem $cartItem): RedirectResponse
@@ -66,7 +72,10 @@ class CartController extends Controller
 
         $cartItem->delete();
 
-        return back();
+        return back()->with('notification', [
+            'type' => 'info',
+            'message' => 'Item removed from your cart.',
+        ]);
     }
 
     private function ensureOwnership(Request $request, CartItem $cartItem): void

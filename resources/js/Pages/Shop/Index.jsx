@@ -3,13 +3,24 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import { useEffect, useMemo, useState } from 'react';
 
 export default function Index({ products, cartItems }) {
-    const { errors } = usePage().props;
+    const { errors, flash } = usePage().props;
+    const productsData = products?.data ?? products ?? [];
+    const productsMeta = products?.meta ?? {};
+    const productsLinks = products?.links ?? [];
     const [productQuantities, setProductQuantities] = useState(() =>
-        Object.fromEntries(products.map((product) => [product.id, 1])),
+        Object.fromEntries(productsData.map((product) => [product.id, 1])),
     );
     const [cartQuantities, setCartQuantities] = useState(() =>
         Object.fromEntries(cartItems.map((item) => [item.id, item.quantity])),
     );
+    const [isLoading, setIsLoading] = useState(false);
+    const notification = flash?.notification;
+
+    useEffect(() => {
+        setProductQuantities(
+            Object.fromEntries(productsData.map((product) => [product.id, 1])),
+        );
+    }, [productsData]);
 
     useEffect(() => {
         setCartQuantities(
@@ -18,6 +29,19 @@ export default function Index({ products, cartItems }) {
             ),
         );
     }, [cartItems]);
+
+    useEffect(() => {
+        const startLoading = () => setIsLoading(true);
+        const stopLoading = () => setIsLoading(false);
+
+        router.on('start', startLoading);
+        router.on('finish', stopLoading);
+
+        return () => {
+            router.off('start', startLoading);
+            router.off('finish', stopLoading);
+        };
+    }, []);
 
     const subtotal = useMemo(() => {
         return cartItems.reduce((total, item) => {
@@ -88,11 +112,21 @@ export default function Index({ products, cartItems }) {
                                 Add product
                             </Link>
                         </div>
-                        {products.map((product) => (
-                            <div
-                                key={product.id}
-                                className="flex flex-col justify-between gap-4 rounded-lg bg-white p-6 shadow-sm sm:flex-row sm:items-center"
-                            >
+                        <div className="relative">
+                            {isLoading && (
+                                <div className="absolute inset-0 z-10 flex items-center justify-center rounded-3xl bg-white/70 backdrop-blur">
+                                    <div className="flex items-center gap-3 rounded-full border border-indigo-100 bg-white px-4 py-2 text-sm font-semibold text-indigo-600 shadow-lg">
+                                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-indigo-200 border-t-indigo-600" />
+                                        Loading updates...
+                                    </div>
+                                </div>
+                            )}
+                            <div className="space-y-4">
+                                {productsData.map((product) => (
+                                    <div
+                                        key={product.id}
+                                        className="flex flex-col justify-between gap-4 rounded-lg bg-white p-6 shadow-sm sm:flex-row sm:items-center"
+                                    >
                                 <div>
                                     <h3 className="text-lg font-semibold text-gray-900">
                                         {product.name}
@@ -132,9 +166,79 @@ export default function Index({ products, cartItems }) {
                                 </div>
                             </div>
                         ))}
+                            </div>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3 text-sm text-gray-500 shadow-sm">
+                            <span>
+                                Showing {productsMeta.from ?? 0}-
+                                {productsMeta.to ?? 0} of{' '}
+                                {productsMeta.total ?? productsData.length}{' '}
+                                products
+                            </span>
+                            <div className="flex flex-wrap items-center gap-2">
+                                {productsLinks.map((link) => {
+                                    const label = link.label
+                                        .replace('&laquo;', '←')
+                                        .replace('&raquo;', '→');
+
+                                    if (!link.url) {
+                                        return (
+                                            <span
+                                                key={link.label}
+                                                className="inline-flex items-center rounded-lg border border-gray-100 px-3 py-1 text-sm font-semibold text-gray-300"
+                                            >
+                                                {label}
+                                            </span>
+                                        );
+                                    }
+
+                                    return (
+                                        <Link
+                                            key={link.label}
+                                            href={link.url}
+                                            className={`inline-flex items-center rounded-lg border px-3 py-1 text-sm font-semibold transition ${
+                                                link.active
+                                                    ? 'border-indigo-600 bg-indigo-600 text-white'
+                                                    : 'border-gray-200 text-gray-600 hover:border-indigo-200 hover:text-indigo-600'
+                                            }`}
+                                            preserveScroll
+                                        >
+                                            {label}
+                                        </Link>
+                                    );
+                                })}
+                            </div>
+                        </div>
                     </section>
 
                     <aside className="rounded-3xl border border-gray-100 bg-white/90 p-6 shadow-lg shadow-indigo-100/50 ring-1 ring-gray-100 backdrop-blur lg:sticky lg:top-8">
+                        {notification && (
+                            <div
+                                className={`mb-4 flex items-start gap-3 rounded-2xl border px-4 py-3 text-sm shadow-sm ${
+                                    notification.type === 'success'
+                                        ? 'border-emerald-100 bg-emerald-50 text-emerald-700'
+                                        : notification.type === 'info'
+                                          ? 'border-blue-100 bg-blue-50 text-blue-700'
+                                          : 'border-gray-100 bg-gray-50 text-gray-700'
+                                }`}
+                            >
+                                <span className="text-lg">
+                                    {notification.type === 'success'
+                                        ? '✅'
+                                        : notification.type === 'info'
+                                          ? 'ℹ️'
+                                          : '💬'}
+                                </span>
+                                <div>
+                                    <p className="text-xs font-semibold uppercase tracking-wide">
+                                        Notification
+                                    </p>
+                                    <p className="mt-1 text-sm font-medium">
+                                        {notification.message}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-500">
