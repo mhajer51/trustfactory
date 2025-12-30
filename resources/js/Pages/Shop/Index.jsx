@@ -134,36 +134,68 @@ export default function Index({ products, cartItems }) {
                         ))}
                     </section>
 
-                    <aside className="rounded-lg bg-white p-6 shadow-sm">
-                        <h3 className="text-lg font-semibold text-gray-900">
-                            Your cart
-                        </h3>
+                    <aside className="rounded-3xl border border-gray-100 bg-white/90 p-6 shadow-lg shadow-indigo-100/50 ring-1 ring-gray-100 backdrop-blur lg:sticky lg:top-8">
+                        <div className="flex items-start justify-between gap-4">
+                            <div>
+                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-indigo-500">
+                                    Summary
+                                </p>
+                                <h3 className="mt-2 text-xl font-semibold text-gray-900">
+                                    Shopping cart
+                                </h3>
+                                <p className="mt-1 text-sm text-gray-500">
+                                    Review, edit, and checkout with confidence.
+                                </p>
+                            </div>
+                            <div className="rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 px-3 py-2 text-center text-white shadow-md">
+                                <p className="text-xs uppercase tracking-widest text-indigo-100">
+                                    Items
+                                </p>
+                                <p className="text-lg font-semibold">
+                                    {cartItems.length}
+                                </p>
+                            </div>
+                        </div>
                         {errors.quantity && (
-                            <p className="mt-2 text-sm text-red-600">
+                            <p className="mt-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
                                 {errors.quantity}
                             </p>
                         )}
 
                         {cartItems.length === 0 ? (
-                            <p className="mt-4 text-sm text-gray-500">
-                                Your cart is empty.
-                            </p>
+                            <div className="mt-6 rounded-3xl border border-dashed border-indigo-200 bg-gradient-to-br from-indigo-50 via-white to-white px-5 py-8 text-center">
+                                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-600">
+                                    <span className="text-lg">🛒</span>
+                                </div>
+                                <p className="mt-4 text-sm font-semibold text-gray-900">
+                                    Your cart is empty
+                                </p>
+                                <p className="mt-1 text-xs text-gray-500">
+                                    Add products from the catalog to start
+                                    building your order.
+                                </p>
+                            </div>
                         ) : (
-                            <div className="mt-4 space-y-4">
+                            <div className="mt-6 space-y-4">
                                 {cartItems.map((item) => (
                                     <div
                                         key={item.id}
-                                        className="rounded-md border border-gray-100 p-4"
+                                        className="rounded-3xl border border-gray-100 bg-white p-4 shadow-sm transition hover:shadow-md"
                                     >
                                         <div className="flex items-start justify-between gap-4">
                                             <div>
                                                 <p className="font-medium text-gray-900">
                                                     {item.product.name}
                                                 </p>
-                                                <p className="text-sm text-gray-500">
+                                                <p className="mt-1 text-sm text-gray-500">
                                                     ${Number(
                                                         item.product.price,
                                                     ).toFixed(2)}
+                                                    <span className="mx-1 text-gray-300">
+                                                        •
+                                                    </span>
+                                                    {item.product.stock_quantity}{' '}
+                                                    in stock
                                                 </p>
                                             </div>
                                             <button
@@ -171,43 +203,55 @@ export default function Index({ products, cartItems }) {
                                                 onClick={() =>
                                                     handleRemoveCart(item.id)
                                                 }
-                                                className="text-sm text-red-600 hover:text-red-500"
+                                                className="rounded-full border border-red-100 bg-red-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-red-600 transition hover:border-red-200 hover:bg-red-100"
                                             >
                                                 Remove
                                             </button>
                                         </div>
-                                        <div className="mt-3 flex items-center gap-3">
-                                            <input
-                                                type="number"
-                                                min="1"
-                                                max={item.product.stock_quantity}
-                                                value={
-                                                    cartQuantities[item.id] ??
-                                                    item.quantity
-                                                }
-                                                onChange={(event) =>
-                                                    setCartQuantities((prev) => ({
-                                                        ...prev,
-                                                        [item.id]:
-                                                            Number(
-                                                                event.target
-                                                                    .value,
-                                                            ) || 1,
-                                                    }))
-                                                }
-                                                className="w-20 rounded-md border-gray-300 text-sm"
-                                            />
+                                        <div className="mt-4 flex flex-wrap items-center gap-3">
+                                            <div className="flex items-center gap-2 rounded-2xl border border-gray-200 bg-gray-50 px-2 py-1">
+                                                <span className="text-xs font-medium text-gray-500">
+                                                    Qty
+                                                </span>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    max={
+                                                        item.product
+                                                            .stock_quantity
+                                                    }
+                                                    value={
+                                                        cartQuantities[
+                                                            item.id
+                                                        ] ?? item.quantity
+                                                    }
+                                                    onChange={(event) =>
+                                                        setCartQuantities(
+                                                            (prev) => ({
+                                                                ...prev,
+                                                                [item.id]:
+                                                                    Number(
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                    ) || 1,
+                                                            }),
+                                                        )
+                                                    }
+                                                    className="w-16 rounded-xl border border-transparent bg-transparent text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                />
+                                            </div>
                                             <button
                                                 type="button"
                                                 onClick={() =>
                                                     handleUpdateCart(item.id)
                                                 }
-                                                className="inline-flex items-center justify-center rounded-md border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
+                                                className="inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
                                             >
                                                 Update
                                             </button>
-                                            <span className="ml-auto text-sm text-gray-500">
-                                                Line total: $
+                                            <span className="ml-auto text-sm font-semibold text-gray-900">
+                                                $
                                                 {(
                                                     Number(
                                                         item.product.price,
@@ -219,9 +263,28 @@ export default function Index({ products, cartItems }) {
                                         </div>
                                     </div>
                                 ))}
-                                <div className="flex items-center justify-between border-t border-gray-100 pt-4 text-sm font-semibold text-gray-900">
-                                    <span>Subtotal</span>
-                                    <span>${subtotal.toFixed(2)}</span>
+                                <div className="rounded-3xl border border-gray-100 bg-gradient-to-br from-white via-white to-indigo-50 p-5">
+                                    <div className="flex items-center justify-between text-sm text-gray-500">
+                                        <span>Subtotal</span>
+                                        <span>${subtotal.toFixed(2)}</span>
+                                    </div>
+                                    <div className="mt-2 flex items-center justify-between text-sm text-gray-500">
+                                        <span>Shipping</span>
+                                        <span>Calculated at checkout</span>
+                                    </div>
+                                    <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3 text-base font-semibold text-gray-900">
+                                        <span>Total</span>
+                                        <span>${subtotal.toFixed(2)}</span>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="mt-4 w-full rounded-2xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-200 transition hover:-translate-y-0.5 hover:bg-indigo-500"
+                                    >
+                                        Proceed to checkout
+                                    </button>
+                                    <p className="mt-3 text-center text-xs text-gray-500">
+                                        Taxes calculated at checkout
+                                    </p>
                                 </div>
                             </div>
                         )}
